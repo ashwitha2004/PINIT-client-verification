@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from ..db.database import get_admin_db
-from ..models.schemas import SuspendUser
+from db.database import get_admin_db
+from models.schemas import SuspendUser
 from ..utils.auth_helpers import get_admin_user, log_action
 
 router = APIRouter(tags=["Admin"])

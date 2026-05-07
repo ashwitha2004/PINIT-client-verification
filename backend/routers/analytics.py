@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
-from ..models import Analytics, User
-from ..db import get_db
+from models import Analytics, User
+from db import get_db
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 class AnalyticsEvent(BaseModel):
     event_type: str  # 'upload', 'verification', 'encryption', 'login', 'register'
     user_id: str
-    metadata: Dict[str, Any] = {}
+    event_metadata: Dict[str, Any] = {}
 
 class AnalyticsResponse(BaseModel):
     total_uploads: int
@@ -36,7 +36,7 @@ async def log_analytics_event(
         analytics_entry = Analytics(
             event_type=event.event_type,
             user_id=event.user_id,
-            metadata=event.metadata,
+            event_metadata=event.event_metadata,
             timestamp=datetime.utcnow()
         )
         db.add(analytics_entry)
@@ -90,7 +90,7 @@ async def get_dashboard_stats(
         authentic_files = 0
         
         for record in verification_records:
-            metadata = record.metadata or {}
+            metadata = record.event_metadata or {}
             detection_type = metadata.get("detection_type", "Unknown")
             status = metadata.get("status", "unknown")
             
@@ -114,7 +114,7 @@ async def get_dashboard_stats(
                 "event_type": activity.event_type,
                 "user_id": activity.user_id,
                 "timestamp": activity.timestamp.isoformat(),
-                "metadata": activity.metadata
+                "metadata": activity.event_metadata
             })
         
         return AnalyticsResponse(
@@ -153,7 +153,7 @@ async def get_user_activity(
             activity_list.append({
                 "event_type": activity.event_type,
                 "timestamp": activity.timestamp.isoformat(),
-                "metadata": activity.metadata
+                "metadata": activity.event_metadata
             })
         
         return {

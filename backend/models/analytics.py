@@ -10,7 +10,7 @@ class Analytics(Base):
     id = Column(Integer, primary_key=True, index=True)
     event_type = Column(String(50), nullable=False, index=True)  # 'upload', 'verification', 'encryption', 'login', 'register'
     user_id = Column(String(255), nullable=False, index=True)
-    metadata = Column(JSON, nullable=True)  # Store additional event data
+    event_metadata = Column(JSON, nullable=True)  # Store additional event data
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     def __repr__(self):

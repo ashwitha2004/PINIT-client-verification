@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
 from datetime import datetime
-from ..db.database import get_admin_db
+from db.database import get_admin_db
 from ..utils.auth_helpers import get_current_user, log_action
 import json
 import base64
