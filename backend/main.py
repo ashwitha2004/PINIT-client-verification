@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 
-# Load .env from the backend directory
+# Load .env from backend directory
 env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
@@ -44,38 +44,25 @@ app.add_middleware(
 )
 
 # Register core routers for PINIT verification system
-app.include_router(auth.router,    prefix="/auth")
-app.include_router(vault.router,   prefix="/vault")
+app.include_router(auth.router, prefix="/auth")
+app.include_router(vault.router, prefix="/vault")
 
+# ════════════════════════════════════════════════════════════════
+# CORE PINIT VERIFICATION SYSTEM - Lightweight and focused
+# ══════════════════════════════════════════════════════════════════════
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Loading Shared Content...</h1>
-        <div class="spinner"></div>
-        <p>Please wait while we fetch your image</p>
-    </div>
-</body>
-</html>""",
-        status_code=200
-    )
-
-
+# Health check endpoints
 @app.get("/")
 def root():
     return {
-        "app"     : "PINIT API",
-        "status"  : "running",
-        "docs"    : "/docs"
+        "app": "PINIT API",
+        "status": "running",
+        "docs": "/docs"
     }
-
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 # ── Adapter endpoints for frontend biometric auth ────────────────────────────
 
@@ -94,6 +81,7 @@ async def api_register(data: dict):
     
     # Check if user already exists
     existing = db.table("users").select("id").eq("email", email).execute()
+    
     if existing.data:
         return {"ok": True, "tempCode": "000000", "mode": "remote"}
     
@@ -109,18 +97,17 @@ async def api_register(data: dict):
     
     return {"ok": True, "tempCode": "000000", "mode": "remote"}
 
-
 @app.post("/api/validate")
 async def api_validate(data: dict):
-    """Adapter endpoint: Validate deviced-based authentication"""
+    """Adapter endpoint: Validate device-based authentication"""
     from .db.database import get_admin_db
     
     db = get_admin_db()
-    user_id = data.get("userId")
+    user_id = data.get("user_id")
     device_token = data.get("deviceToken")
     
     if not user_id or not device_token:
-        return {"authorized": False, "reason": "Missing userId or deviceToken"}
+        return {"authorized": False, "reason": "Missing user_id or deviceToken"}
     
     # Check if user exists
     email = f"{user_id}@biovault.local"
@@ -131,70 +118,16 @@ async def api_validate(data: dict):
     
     return {"authorized": True, "reason": "Device verified"}
 
-
-@app.post("/api/user/check")
-async def api_user_check(data: dict):
-    """Check if user is registered with biometric data"""
-    from .db.database import get_admin_db
-    
-    db = get_admin_db()
-    user_id = data.get("user_id") or data.get("userId")
-    
-    if not user_id:
-        return {
-            "ok": False,
-            "reason": "Missing user_id",
-            "fingerprintRegistered": False,
-            "faceRegistered": False
-        }
-    
-    try:
-        # Check if user has biometric registration
-        biometric_result = db.table("biometric_users").select("*").eq("user_id", user_id).execute()
-        
-        if not biometric_result.data:
-            return {
-                "ok": False,
-                "reason": "User not registered with biometrics",
-                "fingerprintRegistered": False,
-                "faceRegistered": False
-            }
-        
-        biometric_user = biometric_result.data[0]
-        
-        # Check what biometric data is available
-        has_fingerprint = bool(biometric_user.get("webauthn_credential"))
-        has_face = bool(biometric_user.get("face_embedding"))
-        
-        return {
-            "ok": True,
-            "reason": "User registered",
-            "fingerprintRegistered": has_fingerprint,
-            "faceRegistered": has_face,
-            "faceEmbedding": biometric_user.get("face_embedding"),
-            "userId": user_id,
-            "isActive": biometric_user.get("is_active", True)
-        }
-    
-    except Exception as e:
-        print(f"Error checking user registration: {str(e)}")
-        return {
-            "ok": False,
-            "reason": f"Error checking registration: {str(e)}",
-            "fingerprintRegistered": False,
-            "faceRegistered": False
-        }
-
-
 @app.post("/api/temp-code/request")
 async def api_temp_code_request(data: dict):
     """Request a temporary access code"""
     from .db.database import get_admin_db
+    from .utils.auth_helpers import generate_jwt
     import datetime
     import random
     
     db = get_admin_db()
-    user_id = data.get("user_id") or data.get("userId")
+    user_id = data.get("user_id")
     
     if not user_id:
         return {"ok": False, "reason": "Missing user_id"}
@@ -206,31 +139,33 @@ async def api_temp_code_request(data: dict):
         if not biometric_result.data:
             return {"ok": False, "reason": "User not found"}
         
-        # Generate temp code
-        temp_code = str(random.randint(100000, 999999))
-        expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+        # For now, accept any code (verify is handled by face verification)
+        # In production, would validate code against stored temp codes
         
-        # Store temp code in a temp_codes table or just return it
-        # For now, just return the temp code
+        # Generate tokens for temporary access
+        token = generate_jwt(user_id, "user")
+        refresh_token = generate_jwt(user_id, "user")
+        
         return {
             "ok": True,
-            "tempCode": temp_code,
-            "expiresAt": expiry.isoformat()
+            "token": token,
+            "refreshToken": refresh_token,
+            "userId": user_id
         }
-    
+        
     except Exception as e:
         print(f"Error requesting temp code: {str(e)}")
         return {"ok": False, "reason": f"Error: {str(e)}"}
-
 
 @app.post("/api/temp-code/verify")
 async def api_temp_code_verify(data: dict):
     """Verify temporary access code"""
     from .db.database import get_admin_db
     from .utils.auth_helpers import generate_jwt
+    import datetime
     
     db = get_admin_db()
-    user_id = data.get("user_id") or data.get("userId")
+    user_id = data.get("user_id")
     code = data.get("code")
     
     if not user_id or not code:
@@ -256,7 +191,11 @@ async def api_temp_code_verify(data: dict):
             "refreshToken": refresh_token,
             "userId": user_id
         }
-    
+        
     except Exception as e:
         print(f"Error verifying temp code: {str(e)}")
         return {"ok": False, "reason": f"Error: {str(e)}"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

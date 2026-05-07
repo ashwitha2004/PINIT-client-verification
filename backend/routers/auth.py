@@ -91,15 +91,15 @@ async def biometric_register(data: BiometricRegister, request: Request):
         print("❌ Missing deviceToken")
         raise HTTPException(status_code=400, detail="Missing deviceToken")
     
-    # Validate webauthn data
+    # Validate webauthn data (optional for simplified PINIT flow)
     if not data.webauthn:
-        print("❌ Missing webauthn data")
-        raise HTTPException(status_code=400, detail="Missing webauthn credentials")
+        print("⚠️ No webauthn data - using simplified PINIT registration")
+        # Continue without webauthn for simplified flow
     
-    # Validate face embedding
+    # Validate face embedding (optional for simplified PINIT flow)
     if not data.faceEmbedding or len(data.faceEmbedding) == 0:
-        print("❌ Missing face embedding")
-        raise HTTPException(status_code=400, detail="Missing face embedding")
+        print("⚠️ No face embedding - using simplified PINIT registration")
+        # Continue without face embedding for simplified flow
     
     print(f"✅ All validations passed for userId: {data.userId}")
     

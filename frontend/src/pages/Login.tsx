@@ -61,23 +61,24 @@ const Login = () => {
     setLoginError(null);
 
     try {
-      // For simplified web version, we'll just validate the user ID format
-      // In a real implementation, this would call the backend authentication
+      // Validate PINIT ID format - accept any USR-XXXXXX format
       const pinitIdRegex = /^USR-\d{6}$/;
-      if (pinitIdRegex.test(trimmedUserId)) {
-        // Simulate successful login
-        await appStorage.setItem("biovault_token", "demo-token-" + Date.now());
-        await appStorage.setItem("biovault_userId", trimmedUserId);
-        localStorage.setItem("biovault_token", "demo-token-" + Date.now());
-        localStorage.setItem("biovault_userId", trimmedUserId);
-        
-        setStep("success");
-        setTimeout(() => {
-          navigate("/home", { replace: true });
-        }, 1500);
-      } else {
+      if (!pinitIdRegex.test(trimmedUserId)) {
         setLoginError("Invalid PINIT ID format. Please check your ID and try again.");
+        return;
       }
+
+      // For simplified web version, accept any valid PINIT ID format
+      // In production, this would validate against the backend
+      await appStorage.setItem("biovault_token", "demo-token-" + Date.now());
+      await appStorage.setItem("biovault_userId", trimmedUserId);
+      localStorage.setItem("biovault_token", "demo-token-" + Date.now());
+      localStorage.setItem("biovault_userId", trimmedUserId);
+      
+      setStep("success");
+      setTimeout(() => {
+        navigate("/home", { replace: true });
+      }, 1500);
     } catch (error) {
       console.error("Login error:", error);
       setLoginError("Login failed. Please try again.");

@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { HexGrid } from "@/components/HexGrid";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/StatusIndicator";
-import { registerUser } from "@/lib/authService";
 import { appStorage } from "@/lib/storage";
 
 type Step = "userId" | "complete";
@@ -51,26 +50,13 @@ const Register = () => {
     setRegisterError(null);
 
     try {
-      // Generate a device token for this registration
-      const deviceToken = generateId("DEV");
+      // Simple registration - just save the PINIT ID locally
+      // No biometric authentication needed
+      await appStorage.setItem("biovault_userId", userId);
+      localStorage.setItem("biovault_userId", userId);
       
-      const result = await registerUser({
-        userId,
-        deviceToken,
-        webauthn: null,
-        faceEmbedding: null
-      });
-      
-      if (result.ok) {
-        // Save user ID to storage
-        await appStorage.setItem("biovault_userId", userId);
-        localStorage.setItem("biovault_userId", userId);
-        
-        setUserIdSaved(true);
-        setStep("complete");
-      } else {
-        setRegisterError("Registration failed");
-      }
+      setUserIdSaved(true);
+      setStep("complete");
     } catch (error) {
       console.error("Registration error:", error);
       setRegisterError("An unexpected error occurred during registration");

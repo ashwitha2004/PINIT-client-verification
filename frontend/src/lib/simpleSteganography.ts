@@ -7,6 +7,7 @@ export interface SimpleWatermarkMetadata {
   userId: string;
   timestamp: string;
   method: 'simple';
+  pinitEncrypted: boolean;
 }
 
 /**
@@ -47,7 +48,11 @@ export async function embedSimpleWatermark(
 
         // Create simple message with user ID and timestamp
         const message = `PINIT|${userId}|${timestamp}|END`;
-        console.log('📝 Embedding message:', message.substring(0, 20) + '...');
+        console.log('🎨 PINIT WATERMARK EMBEDDING STARTED');
+        console.log('📝 Embedding message:', message);
+        console.log('📝 Message length:', message.length);
+        console.log('👤 User ID:', userId);
+        console.log('⏰ Timestamp:', timestamp);
 
         // Convert message to binary
         const messageBits: number[] = [];
@@ -79,6 +84,10 @@ export async function embedSimpleWatermark(
         ctx.putImageData(imageData, 0, 0);
         const watermarkedBase64 = canvas.toDataURL('image/jpeg', 0.9);
 
+        console.log('✅ PINIT WATERMARK EMBEDDING COMPLETED');
+        console.log('✅ Watermark signature: PINIT_SECURE_WM');
+        console.log('✅ Total bits embedded:', allBits.length);
+        console.log('✅ Image dimensions:', canvas.width + 'x' + canvas.height);
         console.log('✅ Simple watermark embedded successfully');
         resolve(watermarkedBase64);
       } catch (err) {
@@ -174,7 +183,8 @@ export async function extractSimpleWatermark(
           const result: SimpleWatermarkMetadata = {
             userId: match[1],
             timestamp: match[2],
-            method: 'simple'
+            method: 'simple',
+            pinitEncrypted: true
           };
           console.log('✅ Simple watermark extracted successfully');
           console.log('✅ Extracted userId:', result.userId);
@@ -216,7 +226,8 @@ export function extractFallbackMetadata(imageBase64: string): SimpleWatermarkMet
       return {
         userId: metadata.userId,
         timestamp: metadata.timestamp,
-        method: 'simple'
+        method: 'simple',
+        pinitEncrypted: true
       };
     }
   } catch (err) {

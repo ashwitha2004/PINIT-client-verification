@@ -114,84 +114,18 @@ export const vaultAPI = {
         if (match) filename = match[1];
       }
       
-      // Check if running on Capacitor (mobile)
-      const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor.isNativePlatform()) {
-        console.log('📱 Running on Capacitor - saving image to device');
-        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-        
-        // Convert blob to base64
-        const arrayBuffer = await blob.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = window.btoa(binary);
-        
-        console.log('📝 Image converted to base64, size:', base64.length);
-        
-        // Android 11+ scoped storage: use Documents directory
-        try {
-          const docPath = `PINIT_Downloads/${filename}`;
-          console.log('📁 Saving to Documents:', docPath);
-          
-          await Filesystem.writeFile({
-            path: docPath,
-            data: base64,
-            directory: Directory.Documents,
-            recursive: true,
-          });
-          
-          console.log('✅ File saved to Documents successfully');
-          
-          try {
-            const uri = await Filesystem.getUri({
-              path: docPath,
-              directory: Directory.Documents,
-            });
-            console.log('✅ File URI:', uri.uri);
-          } catch (uriErr) {
-            console.warn('⚠️ Could not get URI:', uriErr);
-          }
-          
-          return { success: true, filename, location: 'Documents/PINIT_Downloads' };
-        } catch (docsErr: any) {
-          console.error('❌ Documents save failed:', docsErr);
-          
-          // Fallback 1: Try app cache directory
-          try {
-            console.log('📂 Fallback 1: Trying app cache');
-            const cachePath = filename;
-            
-            await Filesystem.writeFile({
-              path: cachePath,
-              data: base64,
-              directory: Directory.Cache,
-              recursive: true,
-            });
-            
-            console.log('✅ Saved to app cache');
-            return { success: true, filename, location: 'App Cache (Temp)' };
-          } catch (cacheErr: any) {
-            console.error('❌ Cache save failed:', cacheErr);
-            throw new Error(`Failed to save file: ${docsErr.message}`);
-          }
-        }
-      } else {
-        // Web browser - use standard download
-        console.log('🌐 Running on web - using standard download');
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        return { success: true, filename, location: 'Downloads' };
-      }
+      // Web browser - use standard download
+      console.log('🌐 Running on web - using standard download');
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true, filename, location: 'Downloads' };
     } catch (error) {
       console.error('Download error:', error);
       return { success: false, error: String(error) };

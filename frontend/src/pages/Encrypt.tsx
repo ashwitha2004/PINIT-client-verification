@@ -64,18 +64,18 @@ const Encrypt = () => {
       let result: EncryptionResult;
 
       if (encryptionMode === 'advanced') {
-        const metadata = await embedAdvancedWatermark(selectedImage);
+        const processedImage = await embedAdvancedWatermark(selectedImage, 'advanced-user-' + Date.now());
         result = {
           success: true,
-          processedImage: selectedImage, // In real implementation, this would be the processed image
-          metadata
+          processedImage: processedImage,
+          metadata: { userId: 'advanced-user-' + Date.now(), timestamp: new Date().toISOString(), method: 'simple', pinitEncrypted: true }
         };
       } else {
-        const metadata = await embedSimpleWatermark(selectedImage);
+        const processedImage = await embedSimpleWatermark(selectedImage, 'pinit-user-' + Date.now(), new Date().toISOString());
         result = {
           success: true,
-          processedImage: selectedImage, // In real implementation, this would be the processed image
-          metadata
+          processedImage: processedImage,
+          metadata: { userId: 'pinit-user-' + Date.now(), timestamp: new Date().toISOString(), method: 'simple', pinitEncrypted: true }
         };
       }
 
