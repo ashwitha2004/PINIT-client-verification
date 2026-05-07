@@ -28,61 +28,54 @@ interface VerificationResult {
   };
 }
 
-// Comprehensive forensic verification functions
-const detectImageSource = (imageData: string): 'camera' | 'screenshot' | 'whatsapp' | 'downloaded' | 'unknown' => {
-  // Basic heuristics for image source detection
-  if (imageData.includes('WhatsApp') || imageData.includes('WA')) {
-    return 'whatsapp';
-  }
-  if (imageData.includes('Screenshot') || imageData.includes('screen') || imageData.includes('capture')) {
-    return 'screenshot';
-  }
-  if (imageData.includes('download') || imageData.includes('save') || imageData.includes('export')) {
-    return 'downloaded';
-  }
-  if (imageData.includes('camera') || imageData.includes('photo') || imageData.includes('IMG_')) {
-    return 'camera';
-  }
-  return 'unknown';
-};
+// Old hardcoded detection functions - REMOVED to use forensic results instead
+// const detectImageSource = (imageData: string): 'camera' | 'screenshot' | 'whatsapp' | 'downloaded' | 'unknown' => {
+//   // Basic heuristics for image source detection
+//   if (imageData.includes('WhatsApp') || imageData.includes('WA')) {
+//     return 'whatsapp';
+//   }
+//   if (imageData.includes('Screenshot') || imageData.includes('screen') || imageData.includes('capture')) {
+//     return 'screenshot';
+//   }
+//   if (imageData.includes('download') || imageData.includes('save') || imageData.includes('export')) {
+//     return 'downloaded';
+//   }
+//   if (imageData.includes('camera') || imageData.includes('photo') || imageData.includes('IMG_')) {
+//     return 'camera';
+//   }
+//   return 'unknown';
+// };
 
-const detectAIGenerated = (imageData: string): number => {
-  // Simulated AI detection based on image characteristics
-  // In a real implementation, this would use a trained ML model
-  const characteristics = {
-    hasPerfectSymmetry: Math.random() > 0.7,
-    hasUnrealisticLighting: Math.random() > 0.6,
-    hasDigitalArtifacts: Math.random() > 0.5,
-    hasConsistentTexture: Math.random() > 0.4
-  };
-  
-  let probability = 0;
-  if (characteristics.hasDigitalArtifacts) probability += 25;
-  if (characteristics.hasUnrealisticLighting) probability += 20;
-  if (characteristics.hasPerfectSymmetry) probability += 15;
-  if (!characteristics.hasConsistentTexture) probability += 10;
-  
-  return Math.min(probability, 95);
-};
+// const detectAIGenerated = (imageData: string): number => {
+//   // Simulated AI detection based on image characteristics
+//   // In a real implementation, this would use a trained ML model
+//   const characteristics = {
+//     hasPerfectSymmetry: Math.random() > 0.7,
+//     hasUnrealisticLighting: Math.random() > 0.6,
+//     hasDigitalArtifacts: Math.random() > 0.5,
+//     hasConsistentTexture: Math.random() > 0.4
+//   };
+//   
+//   let probability = 0;
+//   if (characteristics.hasPerfectSymmetry) probability += 25;
+//   if (characteristics.hasUnrealisticLighting) probability += 20;
+//   if (characteristics.hasDigitalArtifacts) probability += 30;
+//   if (characteristics.hasConsistentTexture) probability += 25;
+//   
+//   return probability;
+// };
 
-const analyzeMetadata = (imageData: string): 'original' | 'modified' => {
-  // Simulated metadata analysis
-  // In a real implementation, this would parse EXIF data
-  const hasExifData = Math.random() > 0.3;
-  const hasConsistentTimestamp = Math.random() > 0.5;
-  const hasOriginalSoftware = Math.random() > 0.4;
-  
-  if (hasExifData && hasConsistentTimestamp && hasOriginalSoftware) {
-    return 'original';
-  }
-  return 'modified';
-};
+// const analyzeMetadata = (imageData: string): 'original' | 'modified' => {
+//   // Simulated metadata analysis
+//   // In a real implementation, this would parse EXIF data
+//   return Math.random() > 0.5 ? 'original' : 'modified';
+// };
 
-const detectCompression = (imageData: string): boolean => {
-  // Simulated compression detection
-  // In a real implementation, this would analyze image quality patterns
-  return Math.random() > 0.4;
-};
+// const detectCompression = (imageData: string): boolean => {
+//   // Simulated compression detection
+//   // In a real implementation, this would analyze image quality patterns
+//   return Math.random() > 0.4;
+// };
 
 const calculateTrustScore = (
   watermarkDetected: boolean,
@@ -137,6 +130,7 @@ const calculateTrustScore = (
 const VerifyProof = () => {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [verificationMode, setVerificationMode] = useState<'auto' | 'advanced' | 'simple'>('auto');
@@ -144,8 +138,9 @@ const VerifyProof = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (imageData: string) => {
+  const handleImageSelect = (imageData: string, fileName?: string) => {
     setSelectedImage(imageData);
+    setSelectedFileName(fileName || null);
     setVerificationResult(null);
   };
 
@@ -155,7 +150,7 @@ const VerifyProof = () => {
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
-          handleImageSelect(e.target.result as string);
+          handleImageSelect(e.target.result as string, file.name);
         }
       };
       reader.readAsDataURL(file);
@@ -230,11 +225,67 @@ const VerifyProof = () => {
       console.log('[VERIFY] Current logged-in user:', currentUserId);
 
       // Perform comprehensive forensic analysis
-      const imageSource = detectImageSource(selectedImage);
-      const aiProbability = detectAIGenerated(selectedImage);
-      const metadataStatus = analyzeMetadata(selectedImage);
-      const compressionDetected = detectCompression(selectedImage);
-      const analysis = await analyzeImage(selectedImage);
+      const analysis = await analyzeImage(selectedImage, selectedFileName || undefined);
+      
+      // Add debug console logs for forensics
+      console.log("[FORENSICS]", analysis.forensicReport);
+      if (analysis.forensicReport) {
+        console.log("[WHATSAPP DETECTED]", analysis.forensicReport.whatsapp);
+      }
+      
+      // Determine image source from forensic results using PRIORITY HIERARCHY
+      // Priority: 1. Screenshot > 2. Camera > 3. WhatsApp > 4. Downloaded > 5. Unknown
+      let imageSource: 'camera' | 'screenshot' | 'whatsapp' | 'downloaded' | 'unknown';
+      if (analysis.forensicReport) {
+        const fr = analysis.forensicReport;
+        
+        // Priority 1: Screenshot (highest priority)
+        if (fr.screenshot.detected) {
+          imageSource = "screenshot";
+        }
+        // Priority 2: Camera Original
+        else if (fr.camera_original.detected) {
+          imageSource = "camera";
+        }
+        // Priority 3: WhatsApp/Social
+        else if (fr.whatsapp.detected) {
+          imageSource = "whatsapp";
+        }
+        // Priority 4: Downloaded/Processed
+        else if (fr.downloaded.detected) {
+          imageSource = "downloaded";
+        }
+        // Priority 5: Unknown (lowest priority)
+        else {
+          imageSource = "unknown";
+        }
+      } else {
+        // Fallback to analysis image type if no forensic report
+        switch (analysis.imageType) {
+          case "screenshot":
+            imageSource = "screenshot";
+            break;
+          case "phone":
+            imageSource = "camera";
+            break;
+          case "whatsapp":
+            imageSource = "whatsapp";
+            break;
+          default:
+            imageSource = "unknown";
+        }
+      }
+      
+      // Remove old hardcoded detection functions
+      // const imageSource = detectImageSource(selectedImage);
+      // const aiProbability = detectAIGenerated(selectedImage);
+      // const metadataStatus = analyzeMetadata(selectedImage);
+      // const compressionDetected = detectCompression(selectedImage);
+      
+      // Use forensic results instead
+      const aiProbability = analysis.forensicReport?.ai_generated.probability || 0;
+      const metadataStatus = analysis.metadata.hasExif ? 'original' : 'modified';
+      const compressionDetected = analysis.forensicReport?.whatsapp.detected || false;
       
       // Calculate trust score
       const trustScore = calculateTrustScore(
@@ -611,9 +662,9 @@ const VerifyProof = () => {
                       <div className="flex justify-between items-center bg-slate-800/50 rounded-lg p-3">
                         <span className="text-sm text-gray-300">AI Generated Probability</span>
                         <span className={`text-sm font-bold ${
-                          verificationResult.aiGeneratedProbability > 50 ? 'text-red-400' : 'text-gray-400'
+                          (verificationResult.analysis?.forensicReport?.ai_generated.probability || 0) > 50 ? 'text-red-400' : 'text-gray-400'
                         }`}>
-                          {verificationResult.aiGeneratedProbability.toFixed(1)}%
+                          {(verificationResult.analysis?.forensicReport?.ai_generated.probability || 0).toFixed(1)}%
                         </span>
                       </div>
                       
@@ -654,7 +705,7 @@ const VerifyProof = () => {
                       Technical Details
                     </h3>
                     
-                    <div className="bg-slate-800/50 rounded-lg p-4 space-y-2">
+                    <div className="bg-slate-800/50 rounded-lg p-4 space-y-3">
                       <div className="text-sm">
                         <span className="text-gray-300">Detection Type:</span>
                         <span className="text-white ml-2">{verificationResult.details.detectionType}</span>
@@ -673,6 +724,95 @@ const VerifyProof = () => {
                           {new Date(verificationResult.details.timestamp).toLocaleString()}
                         </span>
                       </div>
+                      
+                      {/* Comprehensive Forensic Evidence */}
+                      {verificationResult.analysis?.forensicReport && (
+                        <div className="text-sm space-y-2">
+                          <span className="text-gray-300">Forensic Evidence:</span>
+                          <div className="text-white ml-2 space-y-1">
+                            {/* Show all forensic detections, even secondary ones */}
+                            {verificationResult.analysis.forensicReport.screenshot.detected && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-blue-400">• Screenshot artifacts detected</span>
+                                <span className="text-gray-400">({verificationResult.analysis.forensicReport.screenshot.confidence}% confidence)</span>
+                              </div>
+                            )}
+                            
+                            {verificationResult.analysis.forensicReport.whatsapp.detected && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-green-400">• WhatsApp compression detected</span>
+                                <span className="text-gray-400">({verificationResult.analysis.forensicReport.whatsapp.confidence}% confidence)</span>
+                              </div>
+                            )}
+                            
+                            {verificationResult.analysis.forensicReport.downloaded.detected && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-yellow-400">• Download/export artifacts found</span>
+                                <span className="text-gray-400">({verificationResult.analysis.forensicReport.downloaded.confidence}% confidence)</span>
+                              </div>
+                            )}
+                            
+                            {verificationResult.analysis.forensicReport.camera_original.detected && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-purple-400">• Camera characteristics detected</span>
+                                <span className="text-gray-400">({verificationResult.analysis.forensicReport.camera_original.confidence}% confidence)</span>
+                              </div>
+                            )}
+                            
+                            {verificationResult.analysis.forensicReport.ai_generated.probability > 30 && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-red-400">• AI generation indicators</span>
+                                <span className="text-gray-400">({verificationResult.analysis.forensicReport.ai_generated.probability.toFixed(1)}% probability)</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Detailed forensic reasons */}
+                      {verificationResult.analysis?.forensicReport && (
+                        <div className="text-sm space-y-2">
+                          <span className="text-gray-300">Detection Details:</span>
+                          <div className="text-white ml-2 space-y-1 text-xs">
+                            {/* Show reasons for primary detection */}
+                            {verificationResult.imageSource === 'screenshot' && verificationResult.analysis.forensicReport.screenshot.reasons.length > 0 && (
+                              <div>
+                                <span className="text-blue-300">Screenshot evidence:</span>
+                                {verificationResult.analysis.forensicReport.screenshot.reasons.map((reason, index) => (
+                                  <div key={index} className="text-gray-400 ml-2">• {reason}</div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {verificationResult.imageSource === 'whatsapp' && verificationResult.analysis.forensicReport.whatsapp.reasons.length > 0 && (
+                              <div>
+                                <span className="text-green-300">WhatsApp evidence:</span>
+                                {verificationResult.analysis.forensicReport.whatsapp.reasons.map((reason, index) => (
+                                  <div key={index} className="text-gray-400 ml-2">• {reason}</div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {verificationResult.imageSource === 'downloaded' && verificationResult.analysis.forensicReport.downloaded.reasons.length > 0 && (
+                              <div>
+                                <span className="text-yellow-300">Download evidence:</span>
+                                {verificationResult.analysis.forensicReport.downloaded.reasons.map((reason, index) => (
+                                  <div key={index} className="text-gray-400 ml-2">• {reason}</div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {verificationResult.imageSource === 'camera' && verificationResult.analysis.forensicReport.camera_original.reasons.length > 0 && (
+                              <div>
+                                <span className="text-purple-300">Camera evidence:</span>
+                                {verificationResult.analysis.forensicReport.camera_original.reasons.map((reason, index) => (
+                                  <div key={index} className="text-gray-400 ml-2">• {reason}</div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       
                       {verificationResult.details.issues.length > 0 && (
                         <div className="text-sm">

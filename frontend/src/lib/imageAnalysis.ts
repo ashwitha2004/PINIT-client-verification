@@ -3,6 +3,8 @@
  * Detects image type, ownership, and source
  */
 
+import { performForensicAnalysis, ForensicReport, ImageMetadata } from './forensicDetection';
+
 export interface ImageAnalysisResult {
   imageType: "phone" | "ai" | "whatsapp" | "screenshot" | "real" | "unknown";
   confidence: number; // 0-100
@@ -18,14 +20,17 @@ export interface ImageAnalysisResult {
     owner?: string;
     timestamp?: string;
   };
+  // Add forensic report for detailed analysis
+  forensicReport?: ForensicReport;
 }
 
 /**
  * Analyze image to determine type and source
+ * Uses layered forensic detection approach
  */
-export async function analyzeImage(base64Data: string): Promise<ImageAnalysisResult> {
+export async function analyzeImage(base64Data: string, filename?: string): Promise<ImageAnalysisResult> {
   try {
-    console.log("🔍 Analyzing image...");
+    console.log("🔍 Analyzing image with layered forensic detection...");
 
     // Get image dimensions with error handling
     let dimensions: { width: number; height: number } = { width: 1080, height: 1920 }; // Default dimensions
@@ -37,65 +42,111 @@ export async function analyzeImage(base64Data: string): Promise<ImageAnalysisRes
       // Keep default dimensions
     }
 
+    // Prepare metadata for forensic analysis
+    const forensicMetadata: ImageMetadata = {
+      dimensions,
+      mimeType: "image/jpeg",
+      hasExif: Math.random() > 0.5, // Simulated EXIF check
+      filename,
+      fileSize: base64Data.length * 0.75, // Approximate file size
+      exifData: null // Would be populated by EXIF extraction in production
+    };
+
+    // Perform layered forensic analysis
+    let forensicReport: ForensicReport | undefined;
+    try {
+      forensicReport = await performForensicAnalysis(base64Data, forensicMetadata);
+      console.log("🔬 Forensic analysis complete");
+    } catch (forensicError) {
+      console.warn("⚠️ Forensic analysis failed:", forensicError);
+      // Continue without forensic report
+    }
+
+    // Determine primary image type based on forensic results
     let imageType: ImageAnalysisResult["imageType"] = "unknown";
-    let confidence = 50; // Default confidence
+    let confidence = 50;
     const indicators: string[] = [];
 
-    // Check for AI-generated characteristics with error handling
-    let aiScore = 0;
-    try {
-      aiScore = await detectAIGenerated(base64Data);
-      console.log(`🤖 AI detection score: ${aiScore}`);
-    } catch (aiError) {
-      console.warn("⚠️ AI detection failed:", aiError);
-      indicators.push("AI detection unavailable");
-    }
+    if (forensicReport) {
+      // Priority-based classification based on forensic confidence
+      const detections = [
+        { type: "ai" as const, detected: forensicReport.ai_generated.probability > 60, confidence: forensicReport.ai_generated.probability, reasons: forensicReport.ai_generated.reasons },
+        { type: "whatsapp" as const, detected: forensicReport.whatsapp.detected, confidence: forensicReport.whatsapp.confidence, reasons: forensicReport.whatsapp.reasons },
+        { type: "screenshot" as const, detected: forensicReport.screenshot.detected, confidence: forensicReport.screenshot.confidence, reasons: forensicReport.screenshot.reasons },
+        { type: "phone" as const, detected: forensicReport.camera_original.detected, confidence: forensicReport.camera_original.confidence, reasons: forensicReport.camera_original.reasons }
+      ];
 
-    if (aiScore > 60) {
-      imageType = "ai";
-      confidence = aiScore;
-      indicators.push("🤖 AI-generated image detected");
-      indicators.push("Possible tools: DALL-E, Midjourney, Stable Diffusion");
-    }
+      // Find the highest confidence detection
+      const bestDetection = detections
+        .filter(d => d.detected)
+        .sort((a, b) => b.confidence - a.confidence)[0];
 
-    // Check for WhatsApp characteristics
-    else if (detectedWhatsApp(dimensions)) {
-      imageType = "whatsapp";
-      confidence = 85;
-      indicators.push("📱 WhatsApp origin detected");
-      indicators.push("Typical WhatsApp compression found");
-    }
+      if (bestDetection) {
+        imageType = bestDetection.type;
+        confidence = bestDetection.confidence;
+        indicators.push(...bestDetection.reasons);
+        console.log(`🎯 Primary detection: ${imageType} (${confidence}% confidence)`);
+      }
 
-    // Check for screenshot
-    else if (detectedScreenshot(dimensions)) {
-      imageType = "screenshot";
-      confidence = 80;
-      indicators.push("📸 Screenshot detected");
-      indicators.push("Typical screen resolution aspect ratio");
-    }
+      // Add forensic summary indicators
+      if (forensicReport.downloaded.detected) {
+        indicators.push("🌐 Downloaded image detected");
+      }
+      if (forensicReport.ai_generated.probability > 30) {
+        indicators.push(`🤖 AI probability: ${forensicReport.ai_generated.probability}%`);
+      }
+    } else {
+      // Fallback to original analysis if forensic analysis failed
+      console.log("⚠️ Using fallback analysis");
+      
+      // Check for AI-generated characteristics with error handling
+      let aiScore = 0;
+      try {
+        aiScore = await detectAIGenerated(base64Data);
+        console.log(`🤖 AI detection score: ${aiScore}`);
+      } catch (aiError) {
+        console.warn("⚠️ AI detection failed:", aiError);
+        indicators.push("AI detection unavailable");
+      }
 
-    // Default to real/phone image
-    else {
-      imageType = "phone";
-      confidence = 70;
-      indicators.push("📷 Real/Phone image");
-      indicators.push("Standard mobile camera characteristics");
+      if (aiScore > 60) {
+        imageType = "ai";
+        confidence = aiScore;
+        indicators.push("🤖 AI-generated image detected");
+        indicators.push("Possible tools: DALL-E, Midjourney, Stable Diffusion");
+      } else if (detectedWhatsApp(dimensions)) {
+        imageType = "whatsapp";
+        confidence = 85;
+        indicators.push("📱 WhatsApp origin detected");
+        indicators.push("Typical WhatsApp compression found");
+      } else if (detectedScreenshot(dimensions)) {
+        imageType = "screenshot";
+        confidence = 80;
+        indicators.push("📸 Screenshot detected");
+        indicators.push("Typical screen resolution aspect ratio");
+      } else {
+        imageType = "phone";
+        confidence = 70;
+        indicators.push("📷 Real/Phone image");
+        indicators.push("Standard mobile camera characteristics");
+      }
     }
 
     const result: ImageAnalysisResult = {
       imageType,
       confidence,
       metadata: {
-        hasExif: Math.random() > 0.5, // Simulated EXIF check
+        hasExif: forensicMetadata.hasExif,
         hasMetadata: true,
         dimensions: `${dimensions.width}x${dimensions.height}`,
-        mimeType: "image/jpeg",
+        mimeType: forensicMetadata.mimeType,
       },
       indicators,
       ownership: {
         isWatermarked: false,
         timestamp: new Date().toISOString(),
       },
+      forensicReport
     };
 
     console.log("✅ Analysis complete:", result);
@@ -290,6 +341,7 @@ function detectedScreenshot(dimensions: { width: number; height: number }): bool
 
 /**
  * Format analysis result for display
+ * Includes forensic details if available
  */
 export function formatAnalysisResult(result: ImageAnalysisResult): string {
   const typeEmoji: Record<ImageAnalysisResult["imageType"], string> = {
@@ -301,7 +353,7 @@ export function formatAnalysisResult(result: ImageAnalysisResult): string {
     unknown: "❓",
   };
 
-  return `
+  let output = `
 ${typeEmoji[result.imageType]} IMAGE TYPE: ${result.imageType.toUpperCase()}
 📊 Confidence: ${result.confidence}%
 
@@ -316,6 +368,56 @@ ${result.indicators.map((ind) => `  • ${ind}`).join("\n")}
 🔒 OWNERSHIP:
   • Watermarked: ${result.ownership.isWatermarked ? "Yes ✓" : "No"}
   • Timestamp: ${result.ownership.timestamp}
-  ${result.ownership.owner ? `• Owner: ${result.ownership.owner}` : ""}
-  `.trim();
+  ${result.ownership.owner ? `• Owner: ${result.ownership.owner}` : ""}`;
+
+  // Add forensic details if available
+  if (result.forensicReport) {
+    const fr = result.forensicReport;
+    output += `
+
+🔬 FORENSIC ANALYSIS:
+  📸 Screenshot: ${fr.screenshot.detected ? `YES (${fr.screenshot.confidence}%)` : 'NO'}
+  💬 WhatsApp: ${fr.whatsapp.detected ? `YES (${fr.whatsapp.confidence}%)` : 'NO'}
+  🌐 Downloaded: ${fr.downloaded.detected ? `YES (${fr.downloaded.confidence}%)` : 'NO'}
+  🤖 AI Generated: ${fr.ai_generated.probability}%
+  📷 Camera Original: ${fr.camera_original.detected ? `YES (${fr.camera_original.confidence}%)` : 'NO'}`;
+
+    // Add detailed reasons for each detection
+    if (fr.screenshot.detected && fr.screenshot.reasons.length > 0) {
+      output += `
+
+📸 SCREENSHOT REASONS:
+${fr.screenshot.reasons.map(r => `    • ${r}`).join("\n")}`;
+    }
+
+    if (fr.whatsapp.detected && fr.whatsapp.reasons.length > 0) {
+      output += `
+
+💬 WHATSAPP REASONS:
+${fr.whatsapp.reasons.map(r => `    • ${r}`).join("\n")}`;
+    }
+
+    if (fr.downloaded.detected && fr.downloaded.reasons.length > 0) {
+      output += `
+
+🌐 DOWNLOAD REASONS:
+${fr.downloaded.reasons.map(r => `    • ${r}`).join("\n")}`;
+    }
+
+    if (fr.ai_generated.reasons.length > 0) {
+      output += `
+
+🤖 AI REASONS:
+${fr.ai_generated.reasons.map(r => `    • ${r}`).join("\n")}`;
+    }
+
+    if (fr.camera_original.detected && fr.camera_original.reasons.length > 0) {
+      output += `
+
+📷 CAMERA REASONS:
+${fr.camera_original.reasons.map(r => `    • ${r}`).join("\n")}`;
+    }
+  }
+
+  return output.trim();
 }
