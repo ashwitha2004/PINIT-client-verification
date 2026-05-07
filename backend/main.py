@@ -10,7 +10,7 @@ import os
 env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
-from .routers import auth, vault, compare, admin, certificates, sharing, profile, portfolio
+from routers import auth, vault, compare, admin, certificates, sharing, profile, portfolio, analytics
 
 app = FastAPI(
     title       = "PINIT API",
@@ -22,16 +22,18 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://image-crypto-analyzer.vercel.app",
-        "https://pinit-backend.onrender.com",
-        "https://biovault-backend-d13a.onrender.com",
-        "http://localhost:8080",
+        "http://localhost:8082",
         "http://localhost:5173",
-        "http://127.0.0.1:8080",
+        "http://127.0.0.1:8082",
         "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:5000",
+        "http://127.0.0.1:5000",
         "http://localhost:8000",
+        "http://127.0.0.1:8000",
         "capacitor://",
         "file://",
         "*"  # Allow all origins for mobile apps
@@ -50,6 +52,7 @@ app.include_router(certificates.router, prefix="/certificates")
 app.include_router(sharing.router, prefix="/share")
 app.include_router(profile.router, prefix="/profile")
 app.include_router(portfolio.router, prefix="/portfolio")
+app.include_router(analytics.router, prefix="/api")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
