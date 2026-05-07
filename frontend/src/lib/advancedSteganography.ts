@@ -29,6 +29,7 @@ export interface AdvancedWatermarkMetadata {
   originalResolution: string | null;
   confidence: string;
   found: boolean;
+  pinitEncrypted: boolean;
 }
 
 // ============================================
@@ -347,6 +348,7 @@ const buildResultFromExtraction = (
     gpsSource: 'Unknown',
     originalResolution: null,
     confidence: 'High',
+    pinitEncrypted: true,
   };
 };
 
@@ -454,5 +456,6 @@ const buildResult = (m: ParsedIMGCRYPT3): AdvancedWatermarkMetadata => {
     gpsSource: m.gpsSource || 'Unknown',
     originalResolution: m.originalResolution,
     confidence: 'Very High (CRC-validated)',
+    pinitEncrypted: true,
   };
 };

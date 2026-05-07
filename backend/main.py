@@ -10,7 +10,7 @@ import os
 env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
-from routers import auth, vault
+from routers import auth, vault, pinit_verification
 
 app = FastAPI(
     title       = "PINIT API",
@@ -46,6 +46,7 @@ app.add_middleware(
 # Register core routers for PINIT verification system
 app.include_router(auth.router, prefix="/auth")
 app.include_router(vault.router, prefix="/vault")
+app.include_router(pinit_verification.router, prefix="/pinit")
 
 # ════════════════════════════════════════════════════════════════
 # CORE PINIT VERIFICATION SYSTEM - Lightweight and focused

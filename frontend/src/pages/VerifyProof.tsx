@@ -215,6 +215,20 @@ const VerifyProof = () => {
         }
       }
 
+      // Extract user ID from watermark metadata
+      let extractedUserId = null;
+      if (watermarkMetadata && 'userId' in watermarkMetadata) {
+        extractedUserId = (watermarkMetadata as any).userId;
+      } else if (watermarkMetadata && 'pinit_user_id' in watermarkMetadata) {
+        extractedUserId = (watermarkMetadata as any).pinit_user_id;
+      }
+      
+      console.log('[VERIFY] Extracted user ID:', extractedUserId);
+      
+      // Get current logged-in user ID for comparison
+      const currentUserId = localStorage.getItem('pinit_user_id') || localStorage.getItem('biovault_user_id');
+      console.log('[VERIFY] Current logged-in user:', currentUserId);
+
       // Perform comprehensive forensic analysis
       const imageSource = detectImageSource(selectedImage);
       const aiProbability = detectAIGenerated(selectedImage);
@@ -247,11 +261,8 @@ const VerifyProof = () => {
       if (aiProbability > 50) {
         issues.push(`AI-generated content detected (${aiProbability.toFixed(1)}% probability)`);
       }
-      if (analysis.manipulationIndicators && analysis.manipulationIndicators.length > 0) {
-        issues.push(...analysis.manipulationIndicators);
-      }
-      if (analysis.qualityIssues && analysis.qualityIssues.length > 0) {
-        issues.push(...analysis.qualityIssues);
+      if (analysis.indicators && analysis.indicators.length > 0) {
+        issues.push(...analysis.indicators);
       }
       if (compressionDetected) {
         issues.push('Image compression detected');
@@ -301,6 +312,12 @@ const VerifyProof = () => {
         isAuthentic: false,
         confidence: 0,
         watermarkDetected: false,
+        pinitEncrypted: false,
+        imageSource: 'unknown',
+        aiGeneratedProbability: 0,
+        metadataStatus: 'modified',
+        compressionDetected: false,
+        trustScore: 0,
         error: error instanceof Error ? error.message : 'Verification failed',
         details: {
           fileName: `error_image_${Date.now()}.jpg`,

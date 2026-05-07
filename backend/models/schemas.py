@@ -161,3 +161,65 @@ class AuditLogResponse(BaseModel):
     details:    Optional[dict]
     ip_address: Optional[str]
     created_at: str
+
+
+# ─── PINIT Encryption Schemas ───────────────────────────────────────────────────────
+
+class EncryptionRecordCreate(BaseModel):
+    """Schema for creating encryption records"""
+    watermark_id: str
+    pinit_user_id: str
+    image_hash: str
+    signature: str = "PINIT_SECURE_WM"
+    asset_id: Optional[str] = None
+    metadata: Optional[dict] = {}
+
+
+class EncryptionRecordResponse(BaseModel):
+    """Schema for encryption record responses"""
+    id: str
+    watermark_id: str
+    pinit_user_id: str
+    image_hash: str
+    signature: str
+    encrypted_at: str
+    status: str
+    trust_level: int
+    asset_id: Optional[str]
+    metadata: Optional[dict]
+    created_at: str
+    updated_at: str
+
+
+class VerificationRequest(BaseModel):
+    """Schema for image verification requests"""
+    image_base64: str
+    extract_watermark: bool = True
+    check_hash: bool = True
+
+
+class VerificationResponse(BaseModel):
+    """Schema for verification responses"""
+    watermark_detected: bool
+    pinit_encrypted: bool
+    verified_user: Optional[str] = None
+    watermark_id: Optional[str] = None
+    verification_status: str  # AUTHENTIC, SUSPICIOUS, NOT_DETECTED
+    trust_score: int
+    ai_probability: Optional[int] = None
+    compression_detected: bool
+    extracted_watermark_id: Optional[str] = None
+    extracted_user_id: Optional[str] = None
+    extracted_signature: Optional[str] = None
+    hash_match: Optional[bool] = None
+    db_record_found: bool
+    debug_info: Optional[dict] = None
+
+
+class WatermarkExtraction(BaseModel):
+    """Schema for extracted watermark data"""
+    watermark_id: Optional[str] = None
+    pinit_user_id: Optional[str] = None
+    signature: Optional[str] = None
+    extraction_confidence: float
+    metadata: Optional[dict] = None

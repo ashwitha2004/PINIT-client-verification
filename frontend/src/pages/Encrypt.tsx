@@ -61,23 +61,47 @@ const Encrypt = () => {
     setEncryptionResult(null);
 
     try {
+      // Get real authenticated PINIT user ID
+      const realUserId = localStorage.getItem('pinit_user_id') || localStorage.getItem('biovault_user_id') || 'USR-UNKNOWN';
+      
+      console.log('[ENCRYPT] Logged in user:', realUserId);
+      
       let result: EncryptionResult;
 
       if (encryptionMode === 'advanced') {
-        const processedImage = await embedAdvancedWatermark(selectedImage, 'advanced-user-' + Date.now());
+        const processedImage = await embedAdvancedWatermark(selectedImage, realUserId);
         result = {
           success: true,
           processedImage: processedImage,
-          metadata: { userId: 'advanced-user-' + Date.now(), timestamp: new Date().toISOString(), method: 'simple', pinitEncrypted: true }
+          metadata: {
+            userId: realUserId,
+            gps: {
+              available: false,
+              source: 'Unknown'
+            },
+            timestamp: new Date().toISOString(),
+            deviceId: null,
+            deviceName: null,
+            ipAddress: null,
+            deviceSource: 'Unknown',
+            ipSource: 'Unknown',
+            gpsSource: 'Unknown',
+            originalResolution: null,
+            confidence: 'High',
+            found: true,
+            pinitEncrypted: true
+          }
         };
       } else {
-        const processedImage = await embedSimpleWatermark(selectedImage, 'pinit-user-' + Date.now(), new Date().toISOString());
+        const processedImage = await embedSimpleWatermark(selectedImage, realUserId, new Date().toISOString());
         result = {
           success: true,
           processedImage: processedImage,
-          metadata: { userId: 'pinit-user-' + Date.now(), timestamp: new Date().toISOString(), method: 'simple', pinitEncrypted: true }
+          metadata: { userId: realUserId, timestamp: new Date().toISOString(), method: 'simple', pinitEncrypted: true }
         };
       }
+      
+      console.log('[ENCRYPT] Embedded user ID:', realUserId);
 
       setEncryptionResult(result);
 

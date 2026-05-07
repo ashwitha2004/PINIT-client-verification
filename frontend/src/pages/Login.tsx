@@ -74,6 +74,7 @@ const Login = () => {
       await appStorage.setItem("biovault_userId", trimmedUserId);
       localStorage.setItem("biovault_token", "demo-token-" + Date.now());
       localStorage.setItem("biovault_userId", trimmedUserId);
+      localStorage.setItem("pinit_user_id", trimmedUserId); // Store PINIT user ID for encryption
       
       setStep("success");
       setTimeout(() => {
