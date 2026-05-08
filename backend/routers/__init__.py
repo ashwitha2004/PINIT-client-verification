@@ -1,3 +1,3 @@
-from routers import auth, vault
+from routers import auth, vault, pinit_verification
 
-__all__ = ['auth', 'vault']
+__all__ = ['auth', 'vault', 'pinit_verification']

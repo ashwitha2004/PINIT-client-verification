@@ -1,4 +1,3 @@
-from .analytics import Analytics
 from .user import User
 
-__all__ = ["Analytics", "User"]
+__all__ = ["User"]

@@ -5,6 +5,7 @@ import { ArrowLeft, Upload, Camera, Shield, Download, CheckCircle, AlertCircle }
 import { embedAdvancedWatermark, type AdvancedWatermarkMetadata } from "@/lib/advancedSteganography";
 import { embedSimpleWatermark, type SimpleWatermarkMetadata } from "@/lib/simpleSteganography";
 import { appStorage } from "@/lib/storage";
+import { CameraCapture } from "@/components/CameraCapture";
 
 interface EncryptionResult {
   success: boolean;
@@ -19,6 +20,7 @@ const Encrypt = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [encryptionResult, setEncryptionResult] = useState<EncryptionResult | null>(null);
   const [encryptionMode, setEncryptionMode] = useState<'advanced' | 'simple'>('advanced');
+  const [showCameraModal, setShowCameraModal] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -41,17 +43,14 @@ const Encrypt = () => {
     }
   };
 
-  const handleCameraCapture = async () => {
-    try {
-      // For web camera capture
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      // This would need a proper camera component implementation
-      // For now, just trigger file input
-      cameraInputRef.current?.click();
-    } catch (error) {
-      console.error('Camera access denied:', error);
-      alert('Camera access denied. Please use file upload instead.');
-    }
+  const handleCameraCapture = () => {
+    setShowCameraModal(true);
+  };
+
+  const handleCameraCaptureComplete = (imageData: string) => {
+    setSelectedImage(imageData);
+    setEncryptionResult(null);
+    setShowCameraModal(false);
   };
 
   const processEncryption = async () => {
@@ -246,6 +245,14 @@ const Encrypt = () => {
                         <Camera className="w-4 h-4" />
                         Use Camera
                       </button>
+
+                      {/* Camera Capture Modal */}
+                      {showCameraModal && (
+                        <CameraCapture
+                          onCapture={handleCameraCaptureComplete}
+                          onClose={() => setShowCameraModal(false)}
+                        />
+                      )}
                     </div>
                     <input
                       ref={fileInputRef}

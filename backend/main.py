@@ -22,6 +22,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Local development
         "http://localhost:8082",
         "http://localhost:5173",
         "http://127.0.0.1:8082",
@@ -34,9 +35,14 @@ app.add_middleware(
         "http://127.0.0.1:5000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        # Production Vercel (will be updated with actual domain)
+        "https://pinit-vault-frontend.vercel.app",
+        "https://*.vercel.app",
+        # Mobile apps
         "capacitor://",
         "file://",
-        "*"  # Allow all origins for mobile apps
+        # Fallback for development
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],

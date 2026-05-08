@@ -3,7 +3,7 @@ services:
   - type: web
   
     # Name of your service
-    name: biovault-backend
+    name: pinit-vault-backend
     
     # Environment variables
     env:
@@ -11,16 +11,18 @@ services:
         value: 3.9.0
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: SUPABASE_SERVICE_KEY
         sync: false
-      - key: CLOUDINARY_CLOUD_NAME
+      - key: JWT_SECRET
         sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-      - key: JWT_SECRET_KEY
-        sync: false
+      - key: JWT_EXPIRE_MINUTES
+        value: "60"
+      - key: RP_ID
+        value: "localhost"
+      - key: RP_NAME
+        value: "PINIT Vault"
+      - key: DEBUG
+        value: "false"
     
     # Build and start commands
     buildCommand: "pip install -r requirements.txt"
@@ -34,3 +36,9 @@ services:
     
     # Plan
     plan: free
+    
+    # Runtime
+    runtime: python
+    
+    # Directory
+    rootDir: backend
