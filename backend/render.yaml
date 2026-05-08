@@ -26,7 +26,7 @@ services:
     
     # Build and start commands
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    startCommand: "python -m uvicorn main:app --host 0.0.0.0 --port $PORT"
     
     # Health check
     healthCheckPath: /
@@ -39,6 +39,3 @@ services:
     
     # Runtime
     runtime: python
-    
-    # Directory
-    rootDir: backend
